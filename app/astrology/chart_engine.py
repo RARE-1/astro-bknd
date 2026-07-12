@@ -2,8 +2,9 @@ from datetime import datetime, timedelta, timezone
 
 import swisseph as swe
 
-from app.constants import SIGN_LORDS
+from app.constants import SIGN_LORDS, ZODIAC_SIGNS
 from app.models import BirthData
+
 from app.astrology.utils import (
     normalize_degree,
     sign_index_from_longitude,
@@ -12,6 +13,13 @@ from app.astrology.utils import (
     nakshatra_details,
     relative_house,
     decimal_to_dms,
+)
+
+from app.astrology.vargas import (
+    VARGA_NAMES,
+    VARGA_CALCULATORS,
+    calculate_varga_chart,
+    calculate_all_vargas,
 )
 
 
@@ -29,11 +37,32 @@ PLANET_IDS = {
 class VedicChartEngine:
 
     def __init__(self):
-        # Lahiri / Chitrapaksha ayanamsha
+        """
+        Vedic astrology calculation engine.
+
+        Current settings:
+        - Swiss Ephemeris
+        - Sidereal zodiac
+        - Lahiri / Chitrapaksha ayanamsha
+        - Whole-sign houses
+        """
+
         swe.set_sid_mode(swe.SIDM_LAHIRI)
 
-    def _local_datetime(self, birth: BirthData) -> datetime:
-        tz = timezone(timedelta(hours=birth.timezone_offset))
+    # =========================================================
+    # TIME
+    # =========================================================
+
+    def _local_datetime(
+        self,
+        birth: BirthData,
+    ) -> datetime:
+
+        tz = timezone(
+            timedelta(
+                hours=birth.timezone_offset
+            )
+        )
 
         return datetime.combine(
             birth.date,
@@ -41,15 +70,32 @@ class VedicChartEngine:
             tzinfo=tz,
         )
 
-    def _utc_datetime(self, birth: BirthData) -> datetime:
-        return self._local_datetime(birth).astimezone(timezone.utc)
+    def _utc_datetime(
+        self,
+        birth: BirthData,
+    ) -> datetime:
 
-    def _julian_day_ut(self, dt_utc: datetime) -> float:
+        return self._local_datetime(
+            birth
+        ).astimezone(
+            timezone.utc
+        )
+
+    # =========================================================
+    # JULIAN DAY
+    # =========================================================
+
+    def _julian_day_ut(
+        self,
+        dt_utc: datetime,
+    ) -> float:
+
         decimal_hour = (
             dt_utc.hour
             + dt_utc.minute / 60.0
             + dt_utc.second / 3600.0
-            + dt_utc.microsecond / 3_600_000_000.0
+            + dt_utc.microsecond
+            / 3_600_000_000.0
         )
 
         return swe.julday(
@@ -60,12 +106,23 @@ class VedicChartEngine:
             swe.GREG_CAL,
         )
 
-    def _planet_flags(self) -> int:
+    # =========================================================
+    # SWISS EPHEMERIS FLAGS
+    # =========================================================
+
+    def _planet_flags(
+        self,
+    ) -> int:
+
         return (
             swe.FLG_SWIEPH
             | swe.FLG_SPEED
             | swe.FLG_SIDEREAL
         )
+
+    # =========================================================
+    # PLANET CALCULATION
+    # =========================================================
 
     def _calculate_planet(
         self,
@@ -79,35 +136,96 @@ class VedicChartEngine:
             self._planet_flags(),
         )
 
-        longitude = normalize_degree(result[0])
+        longitude = normalize_degree(
+            result[0]
+        )
+
         latitude = result[1]
         distance = result[2]
         longitude_speed = result[3]
 
-        sign_index = sign_index_from_longitude(longitude)
-        sign = sign_from_longitude(longitude)
-        degree = degree_in_sign(longitude)
+        sign_index = (
+            sign_index_from_longitude(
+                longitude
+            )
+        )
+
+        sign = sign_from_longitude(
+            longitude
+        )
+
+        degree = degree_in_sign(
+            longitude
+        )
 
         return {
-            "longitude": round(longitude, 8),
-            "latitude": round(latitude, 8),
-            "distance_au": round(distance, 8),
-            "speed_longitude": round(longitude_speed, 8),
+            "longitude": round(
+                longitude,
+                8,
+            ),
 
-            "retrograde": longitude_speed < 0,
+            "latitude": round(
+                latitude,
+                8,
+            ),
 
-            "sign_index": sign_index,
-            "sign_number": sign_index + 1,
-            "sign": sign,
-            "sign_lord": SIGN_LORDS[sign],
+            "distance_au": round(
+                distance,
+                8,
+            ),
 
-            "degree_in_sign": round(degree, 8),
-            "degree_dms": decimal_to_dms(degree),
+            "speed_longitude": round(
+                longitude_speed,
+                8,
+            ),
 
-            "nakshatra": nakshatra_details(longitude),
+            "retrograde": (
+                longitude_speed < 0
+            ),
 
-            "swiss_ephemeris_return_flag": return_flag,
+            "sign_index": (
+                sign_index
+            ),
+
+            "sign_number": (
+                sign_index + 1
+            ),
+
+            "sign": (
+                sign
+            ),
+
+            "sign_lord": (
+                SIGN_LORDS[
+                    sign
+                ]
+            ),
+
+            "degree_in_sign": round(
+                degree,
+                8,
+            ),
+
+            "degree_dms": (
+                decimal_to_dms(
+                    degree
+                )
+            ),
+
+            "nakshatra": (
+                nakshatra_details(
+                    longitude
+                )
+            ),
+
+            "swiss_ephemeris_return_flag": (
+                return_flag
+            ),
         }
+
+    # =========================================================
+    # RAHU
+    # =========================================================
 
     def _calculate_rahu(
         self,
@@ -121,12 +239,14 @@ class VedicChartEngine:
             else swe.MEAN_NODE
         )
 
-        rahu = self._calculate_planet(
+        return self._calculate_planet(
             jd_ut,
             node_id,
         )
 
-        return rahu
+    # =========================================================
+    # KETU
+    # =========================================================
 
     def _calculate_ketu(
         self,
@@ -134,34 +254,96 @@ class VedicChartEngine:
     ) -> dict:
 
         longitude = normalize_degree(
-            rahu["longitude"] + 180.0
+            rahu["longitude"]
+            + 180.0
         )
 
-        sign_index = sign_index_from_longitude(longitude)
-        sign = sign_from_longitude(longitude)
-        degree = degree_in_sign(longitude)
+        sign_index = (
+            sign_index_from_longitude(
+                longitude
+            )
+        )
+
+        sign = sign_from_longitude(
+            longitude
+        )
+
+        degree = degree_in_sign(
+            longitude
+        )
 
         return {
-            "longitude": round(longitude, 8),
-            "latitude": round(-rahu["latitude"], 8),
-            "distance_au": rahu["distance_au"],
+            "longitude": round(
+                longitude,
+                8,
+            ),
 
-            # Ketu is derived exactly opposite Rahu.
-            "speed_longitude": rahu["speed_longitude"],
-            "retrograde": rahu["retrograde"],
+            "latitude": round(
+                -rahu["latitude"],
+                8,
+            ),
 
-            "sign_index": sign_index,
-            "sign_number": sign_index + 1,
-            "sign": sign,
-            "sign_lord": SIGN_LORDS[sign],
+            "distance_au": (
+                rahu[
+                    "distance_au"
+                ]
+            ),
 
-            "degree_in_sign": round(degree, 8),
-            "degree_dms": decimal_to_dms(degree),
+            "speed_longitude": (
+                rahu[
+                    "speed_longitude"
+                ]
+            ),
 
-            "nakshatra": nakshatra_details(longitude),
+            "retrograde": (
+                rahu[
+                    "retrograde"
+                ]
+            ),
 
-            "derived_from": "Rahu + 180 degrees",
+            "sign_index": (
+                sign_index
+            ),
+
+            "sign_number": (
+                sign_index + 1
+            ),
+
+            "sign": (
+                sign
+            ),
+
+            "sign_lord": (
+                SIGN_LORDS[
+                    sign
+                ]
+            ),
+
+            "degree_in_sign": round(
+                degree,
+                8,
+            ),
+
+            "degree_dms": (
+                decimal_to_dms(
+                    degree
+                )
+            ),
+
+            "nakshatra": (
+                nakshatra_details(
+                    longitude
+                )
+            ),
+
+            "derived_from": (
+                "Rahu + 180 degrees"
+            ),
         }
+
+    # =========================================================
+    # ASCENDANT
+    # =========================================================
 
     def _calculate_ascendant(
         self,
@@ -170,13 +352,7 @@ class VedicChartEngine:
         longitude: float,
     ) -> dict:
 
-        # 'P' = Placidus house system.
-        #
-        # For our Jyotish D1 house placement we will use
-        # WHOLE-SIGN houses based on the sidereal Ascendant sign.
-        #
-        # houses_ex gives us the sidereal Ascendant degree.
-        cusps, ascmc = swe.houses_ex(
+        _, ascmc = swe.houses_ex(
             jd_ut,
             latitude,
             longitude,
@@ -184,133 +360,81 @@ class VedicChartEngine:
             swe.FLG_SIDEREAL,
         )
 
-        asc_longitude = normalize_degree(ascmc[0])
+        asc_longitude = normalize_degree(
+            ascmc[0]
+        )
 
-        sign_index = sign_index_from_longitude(asc_longitude)
-        sign = sign_from_longitude(asc_longitude)
-        degree = degree_in_sign(asc_longitude)
+        sign_index = (
+            sign_index_from_longitude(
+                asc_longitude
+            )
+        )
+
+        sign = sign_from_longitude(
+            asc_longitude
+        )
+
+        degree = degree_in_sign(
+            asc_longitude
+        )
 
         return {
-            "longitude": round(asc_longitude, 8),
+            "longitude": round(
+                asc_longitude,
+                8,
+            ),
 
-            "sign_index": sign_index,
-            "sign_number": sign_index + 1,
-            "sign": sign,
-            "sign_lord": SIGN_LORDS[sign],
+            "sign_index": (
+                sign_index
+            ),
 
-            "degree_in_sign": round(degree, 8),
-            "degree_dms": decimal_to_dms(degree),
+            "sign_number": (
+                sign_index + 1
+            ),
 
-            "nakshatra": nakshatra_details(
-                asc_longitude
+            "sign": (
+                sign
+            ),
+
+            "sign_lord": (
+                SIGN_LORDS[
+                    sign
+                ]
+            ),
+
+            "degree_in_sign": round(
+                degree,
+                8,
+            ),
+
+            "degree_dms": (
+                decimal_to_dms(
+                    degree
+                )
+            ),
+
+            "nakshatra": (
+                nakshatra_details(
+                    asc_longitude
+                )
             ),
         }
 
-    def calculate_chart(
-        self,
-        birth: BirthData,
-    ) -> dict:
-
-        # Ensure mode is reset explicitly for every calculation.
-        swe.set_sid_mode(swe.SIDM_LAHIRI)
-
-        local_dt = self._local_datetime(birth)
-        utc_dt = self._utc_datetime(birth)
-
-        jd_ut = self._julian_day_ut(utc_dt)
-
-        ayanamsha = swe.get_ayanamsa_ut(jd_ut)
-
-        ascendant = self._calculate_ascendant(
-            jd_ut=jd_ut,
-            latitude=birth.latitude,
-            longitude=birth.longitude,
-        )
-
-        asc_sign_index = ascendant["sign_index"]
-
-        planets = {}
-
-        for name, planet_id in PLANET_IDS.items():
-            planet = self._calculate_planet(
-                jd_ut,
-                planet_id,
-            )
-
-            planet["house"] = relative_house(
-                planet["sign_index"],
-                asc_sign_index,
-            )
-
-            planets[name] = planet
-
-        rahu = self._calculate_rahu(
-            jd_ut,
-            birth.node_type,
-        )
-
-        rahu["house"] = relative_house(
-            rahu["sign_index"],
-            asc_sign_index,
-        )
-
-        planets["Rahu"] = rahu
-
-        ketu = self._calculate_ketu(rahu)
-
-        ketu["house"] = relative_house(
-            ketu["sign_index"],
-            asc_sign_index,
-        )
-
-        planets["Ketu"] = ketu
-
-        houses = self._build_whole_sign_houses(
-            asc_sign_index
-        )
-
-        return {
-            "engine": {
-                "astronomical_engine": "Swiss Ephemeris",
-                "zodiac": "sidereal",
-                "ayanamsha": "Lahiri / Chitrapaksha",
-                "house_system": "whole_sign",
-                "node_type": birth.node_type,
-            },
-
-            "birth": {
-                "local_datetime": local_dt.isoformat(),
-                "utc_datetime": utc_dt.isoformat(),
-                "latitude": birth.latitude,
-                "longitude": birth.longitude,
-                "timezone_offset": birth.timezone_offset,
-            },
-
-            "astronomy": {
-                "julian_day_ut": round(jd_ut, 8),
-                "ayanamsha_degrees": round(
-                    ayanamsha,
-                    8,
-                ),
-            },
-
-            "ascendant": ascendant,
-
-            "planets": planets,
-
-            "houses": houses,
-        }
+    # =========================================================
+    # WHOLE-SIGN HOUSES
+    # =========================================================
 
     def _build_whole_sign_houses(
         self,
         asc_sign_index: int,
     ) -> list[dict]:
 
-        from app.constants import ZODIAC_SIGNS
-
         houses = []
 
-        for house_number in range(1, 13):
+        for house_number in range(
+            1,
+            13,
+        ):
 
             sign_index = (
                 asc_sign_index
@@ -318,14 +442,561 @@ class VedicChartEngine:
                 - 1
             ) % 12
 
-            sign = ZODIAC_SIGNS[sign_index]
+            sign = ZODIAC_SIGNS[
+                sign_index
+            ]
 
             houses.append({
-                "house": house_number,
-                "sign_index": sign_index,
-                "sign_number": sign_index + 1,
-                "sign": sign,
-                "lord": SIGN_LORDS[sign],
+                "house": (
+                    house_number
+                ),
+
+                "sign_index": (
+                    sign_index
+                ),
+
+                "sign_number": (
+                    sign_index + 1
+                ),
+
+                "sign": (
+                    sign
+                ),
+
+                "lord": (
+                    SIGN_LORDS[
+                        sign
+                    ]
+                ),
             })
 
         return houses
+
+    # =========================================================
+    # BASE ASTRONOMICAL CHART DATA
+    # =========================================================
+
+    def calculate_base_chart(
+        self,
+        birth: BirthData,
+    ) -> dict:
+        """
+        Calculate the shared astronomical foundation.
+
+        This method does NOT calculate every Varga.
+
+        All individual chart endpoints reuse this method.
+        """
+
+        swe.set_sid_mode(
+            swe.SIDM_LAHIRI
+        )
+
+        # -----------------------------------------------------
+        # TIME
+        # -----------------------------------------------------
+
+        local_dt = (
+            self._local_datetime(
+                birth
+            )
+        )
+
+        utc_dt = (
+            self._utc_datetime(
+                birth
+            )
+        )
+
+        # -----------------------------------------------------
+        # JULIAN DAY
+        # -----------------------------------------------------
+
+        jd_ut = (
+            self._julian_day_ut(
+                utc_dt
+            )
+        )
+
+        # -----------------------------------------------------
+        # AYANAMSHA
+        # -----------------------------------------------------
+
+        ayanamsha = (
+            swe.get_ayanamsa_ut(
+                jd_ut
+            )
+        )
+
+        # -----------------------------------------------------
+        # ASCENDANT
+        # -----------------------------------------------------
+
+        ascendant = (
+            self._calculate_ascendant(
+                jd_ut=jd_ut,
+                latitude=birth.latitude,
+                longitude=birth.longitude,
+            )
+        )
+
+        asc_sign_index = (
+            ascendant[
+                "sign_index"
+            ]
+        )
+
+        # -----------------------------------------------------
+        # PLANETS
+        # -----------------------------------------------------
+
+        planets = {}
+
+        for (
+            name,
+            planet_id,
+        ) in PLANET_IDS.items():
+
+            planet = (
+                self._calculate_planet(
+                    jd_ut,
+                    planet_id,
+                )
+            )
+
+            planet["house"] = (
+                relative_house(
+                    planet[
+                        "sign_index"
+                    ],
+                    asc_sign_index,
+                )
+            )
+
+            planets[
+                name
+            ] = planet
+
+        # -----------------------------------------------------
+        # RAHU
+        # -----------------------------------------------------
+
+        rahu = (
+            self._calculate_rahu(
+                jd_ut,
+                birth.node_type,
+            )
+        )
+
+        rahu["house"] = (
+            relative_house(
+                rahu[
+                    "sign_index"
+                ],
+                asc_sign_index,
+            )
+        )
+
+        planets[
+            "Rahu"
+        ] = rahu
+
+        # -----------------------------------------------------
+        # KETU
+        # -----------------------------------------------------
+
+        ketu = (
+            self._calculate_ketu(
+                rahu
+            )
+        )
+
+        ketu["house"] = (
+            relative_house(
+                ketu[
+                    "sign_index"
+                ],
+                asc_sign_index,
+            )
+        )
+
+        planets[
+            "Ketu"
+        ] = ketu
+
+        # -----------------------------------------------------
+        # D1 HOUSES
+        # -----------------------------------------------------
+
+        houses = (
+            self._build_whole_sign_houses(
+                asc_sign_index
+            )
+        )
+
+        return {
+            "engine": {
+                "astronomical_engine": (
+                    "Swiss Ephemeris"
+                ),
+
+                "zodiac": (
+                    "sidereal"
+                ),
+
+                "ayanamsha": (
+                    "Lahiri / Chitrapaksha"
+                ),
+
+                "house_system": (
+                    "whole_sign"
+                ),
+
+                "node_type": (
+                    birth.node_type
+                ),
+            },
+
+            "birth": {
+                "local_datetime": (
+                    local_dt.isoformat()
+                ),
+
+                "utc_datetime": (
+                    utc_dt.isoformat()
+                ),
+
+                "latitude": (
+                    birth.latitude
+                ),
+
+                "longitude": (
+                    birth.longitude
+                ),
+
+                "timezone_offset": (
+                    birth.timezone_offset
+                ),
+            },
+
+            "astronomy": {
+                "julian_day_ut": round(
+                    jd_ut,
+                    8,
+                ),
+
+                "ayanamsha_degrees": round(
+                    ayanamsha,
+                    8,
+                ),
+            },
+
+            "ascendant": (
+                ascendant
+            ),
+
+            "planets": (
+                planets
+            ),
+
+            "houses": (
+                houses
+            ),
+        }
+
+    # =========================================================
+    # INDIVIDUAL VARGA
+    # =========================================================
+
+    def calculate_varga_chart(
+        self,
+        birth: BirthData,
+        division: int,
+    ) -> dict:
+        """
+        Calculate one requested divisional chart only.
+
+        Examples:
+            division=1  -> D1
+            division=9  -> D9
+            division=10 -> D10
+        """
+
+        if division not in VARGA_CALCULATORS:
+            raise ValueError(
+                f"D{division} is not implemented."
+            )
+
+        base_chart = (
+            self.calculate_base_chart(
+                birth
+            )
+        )
+
+        varga = calculate_varga_chart(
+            division=division,
+            ascendant_longitude=(
+                base_chart[
+                    "ascendant"
+                ]["longitude"]
+            ),
+            planets=(
+                base_chart[
+                    "planets"
+                ]
+            ),
+        )
+
+        return {
+            "engine": (
+                base_chart[
+                    "engine"
+                ]
+            ),
+
+            "birth": (
+                base_chart[
+                    "birth"
+                ]
+            ),
+
+            "astronomy": (
+                base_chart[
+                    "astronomy"
+                ]
+            ),
+
+            "chart": (
+                varga
+            ),
+        }
+
+    # =========================================================
+    # D1
+    # =========================================================
+
+    def calculate_d1(
+        self,
+        birth: BirthData,
+    ) -> dict:
+
+        return self.calculate_varga_chart(
+            birth=birth,
+            division=1,
+        )
+
+    # =========================================================
+    # D2
+    # =========================================================
+
+    def calculate_d2(
+        self,
+        birth: BirthData,
+    ) -> dict:
+
+        return self.calculate_varga_chart(
+            birth=birth,
+            division=2,
+        )
+
+    # =========================================================
+    # D3
+    # =========================================================
+
+    def calculate_d3(
+        self,
+        birth: BirthData,
+    ) -> dict:
+
+        return self.calculate_varga_chart(
+            birth=birth,
+            division=3,
+        )
+
+    # =========================================================
+    # D4
+    # =========================================================
+
+    def calculate_d4(
+        self,
+        birth: BirthData,
+    ) -> dict:
+
+        return self.calculate_varga_chart(
+            birth=birth,
+            division=4,
+        )
+
+    # =========================================================
+    # D7
+    # =========================================================
+
+    def calculate_d7(
+        self,
+        birth: BirthData,
+    ) -> dict:
+
+        return self.calculate_varga_chart(
+            birth=birth,
+            division=7,
+        )
+
+    # =========================================================
+    # D9
+    # =========================================================
+
+    def calculate_d9(
+        self,
+        birth: BirthData,
+    ) -> dict:
+
+        return self.calculate_varga_chart(
+            birth=birth,
+            division=9,
+        )
+
+    # =========================================================
+    # D10
+    # =========================================================
+
+    def calculate_d10(
+        self,
+        birth: BirthData,
+    ) -> dict:
+
+        return self.calculate_varga_chart(
+            birth=birth,
+            division=10,
+        )
+
+    # =========================================================
+    # D12
+    # =========================================================
+
+    def calculate_d12(
+        self,
+        birth: BirthData,
+    ) -> dict:
+
+        return self.calculate_varga_chart(
+            birth=birth,
+            division=12,
+        )
+
+    # =========================================================
+    # ALL VARGAS
+    # =========================================================
+
+    def calculate_all_charts(
+        self,
+        birth: BirthData,
+    ) -> dict:
+
+        base_chart = (
+            self.calculate_base_chart(
+                birth
+            )
+        )
+
+        vargas = (
+            calculate_all_vargas(
+                ascendant_longitude=(
+                    base_chart[
+                        "ascendant"
+                    ]["longitude"]
+                ),
+                planets=(
+                    base_chart[
+                        "planets"
+                    ]
+                ),
+            )
+        )
+
+        return {
+            "engine": (
+                base_chart[
+                    "engine"
+                ]
+            ),
+
+            "birth": (
+                base_chart[
+                    "birth"
+                ]
+            ),
+
+            "astronomy": (
+                base_chart[
+                    "astronomy"
+                ]
+            ),
+
+            "charts": (
+                vargas
+            ),
+        }
+
+    # =========================================================
+    # BACKWARD COMPATIBILITY
+    # =========================================================
+
+    def calculate_chart(
+        self,
+        birth: BirthData,
+    ) -> dict:
+        """
+        Kept so existing code and tests do not break.
+
+        Returns the complete currently-supported chart set.
+        """
+
+        base_chart = (
+            self.calculate_base_chart(
+                birth
+            )
+        )
+
+        vargas = (
+            calculate_all_vargas(
+                ascendant_longitude=(
+                    base_chart[
+                        "ascendant"
+                    ]["longitude"]
+                ),
+                planets=(
+                    base_chart[
+                        "planets"
+                    ]
+                ),
+            )
+        )
+
+        return {
+            **base_chart,
+
+            "vargas": (
+                vargas
+            ),
+        }
+
+    # =========================================================
+    # SUPPORTED CHARTS
+    # =========================================================
+
+    def get_supported_charts(
+        self,
+    ) -> list[dict]:
+
+        return [
+            {
+                "division": division,
+                "code": f"D{division}",
+                "name": VARGA_NAMES[
+                    division
+                ],
+            }
+            for division in sorted(
+                VARGA_CALCULATORS.keys()
+            )
+        ]
