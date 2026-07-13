@@ -16,6 +16,9 @@ VARGA_NAMES = {
     24: "Chaturvimshamsha",
     27: "Saptavimshamsha",
     30: "Trimshamsha",
+    40: "Khavedamsha",  # D40 is also called Chaturvimshamsha
+    45: "Akshavedamsa",
+    60: "Shastiamsa",
 }
 
 
@@ -1126,6 +1129,250 @@ def calculate_d30(longitude: float) -> dict:
     )
 
 # =============================================================
+# D40 - KHAVEDAMSHA
+# =============================================================
+
+
+def calculate_d40(longitude: float) -> dict:
+    """
+    Khavedamsha / Chatvarimshamsha.
+
+    Forty equal divisions.
+
+    Each division:
+        30° / 40
+        = 0.75°
+        = 0°45'
+
+    Parashari rule:
+
+        Odd signs:
+            start counting from Aries.
+
+        Even signs:
+            start counting from Libra.
+
+    Then count zodiacally according to the
+    zero-based subdivision index.
+    """
+
+    longitude = normalize_degree(
+        longitude
+    )
+
+    sign_index = int(
+        longitude // 30.0
+    )
+
+    degree = (
+        longitude % 30.0
+    )
+
+    division = 40
+
+    segment_size = (
+        30.0 / division
+    )
+
+    part_index = min(
+        int(
+            degree / segment_size
+        ),
+        division - 1,
+    )
+
+    # Odd signs:
+    # Aries, Gemini, Leo, Libra,
+    # Sagittarius, Aquarius
+    if is_odd_sign(
+        sign_index
+    ):
+
+        start_sign = 0  # Aries
+
+    # Even signs:
+    # Taurus, Cancer, Virgo, Scorpio,
+    # Capricorn, Pisces
+    else:
+
+        start_sign = 6  # Libra
+
+    target_sign = (
+        start_sign
+        + part_index
+    ) % 12
+
+    return build_varga_position(
+        longitude,
+        target_sign,
+        40,
+        part_index,
+    )
+
+# =============================================================
+# D45 - AKSHAVEDAMSHA
+# =============================================================
+
+# =============================================================
+# D45 - AKSHAVEDAMSHA
+# =============================================================
+
+def calculate_d45(longitude: float) -> dict:
+    """
+    D45 - Akshavedamsha.
+
+    Each sign is divided into 45 equal parts.
+
+    Each division:
+        30° / 45
+        = 0°40'
+
+    Parashari modality-based rule:
+
+        Movable signs:
+            Aries, Cancer, Libra, Capricorn
+            Count from Aries.
+
+        Fixed signs:
+            Taurus, Leo, Scorpio, Aquarius
+            Count from Leo.
+
+        Dual signs:
+            Gemini, Virgo, Sagittarius, Pisces
+            Count from Sagittarius.
+
+    Sign indexes are zero-based:
+        Aries       = 0
+        Taurus      = 1
+        Gemini      = 2
+        Cancer      = 3
+        Leo         = 4
+        Virgo       = 5
+        Libra       = 6
+        Scorpio     = 7
+        Sagittarius = 8
+        Capricorn   = 9
+        Aquarius    = 10
+        Pisces      = 11
+    """
+
+    longitude = normalize_degree(
+        longitude
+    )
+
+    source_sign_index = int(
+        longitude // 30.0
+    )
+
+    degree = (
+        longitude % 30.0
+    )
+
+    division = 45
+
+    segment_size = (
+        30.0 / division
+    )
+
+    part_index = min(
+        int(
+            degree / segment_size
+        ),
+        division - 1,
+    )
+
+    # Movable signs:
+    # Aries, Cancer, Libra, Capricorn
+    if source_sign_index in (
+        0, 3, 6, 9
+    ):
+        start_sign = 0  # Aries
+
+    # Fixed signs:
+    # Taurus, Leo, Scorpio, Aquarius
+    elif source_sign_index in (
+        1, 4, 7, 10
+    ):
+        start_sign = 4  # Leo
+
+    # Dual signs:
+    # Gemini, Virgo, Sagittarius, Pisces
+    else:
+        start_sign = 8  # Sagittarius
+
+    target_sign = (
+        start_sign
+        + part_index
+    ) % 12
+
+    return build_varga_position(
+        longitude,
+        target_sign,
+        division,
+        part_index,
+    )
+
+# =============================================================
+# D60 - SHASHTIAMSHA
+# =============================================================
+
+
+def calculate_d60(longitude: float) -> dict:
+    """
+    Shashtiamsha.
+
+    Sixty equal divisions.
+
+    Each division:
+        30° / 60
+        = 0.5°
+        = 0°30'
+
+    The first Shashtiamsha begins from the
+    source sign itself.
+
+    Each successive half-degree division
+    advances one sign zodiacally.
+    """
+
+    longitude = normalize_degree(
+        longitude
+    )
+
+    sign_index = int(
+        longitude // 30.0
+    )
+
+    degree = (
+        longitude % 30.0
+    )
+
+    division = 60
+
+    segment_size = (
+        30.0 / division
+    )
+
+    part_index = min(
+        int(
+            degree / segment_size
+        ),
+        division - 1,
+    )
+
+    target_sign = (
+        sign_index
+        + part_index
+    ) % 12
+
+    return build_varga_position(
+        longitude,
+        target_sign,
+        60,
+        part_index,
+    )
+
+# =============================================================
 # CALCULATOR REGISTRY
 # =============================================================
 
@@ -1144,6 +1391,9 @@ VARGA_CALCULATORS = {
     24: calculate_d24,
     27: calculate_d27,
     30: calculate_d30,
+    40: calculate_d40,
+    45: calculate_d45,
+    60: calculate_d60,
 }
 
 
@@ -1282,6 +1532,9 @@ def calculate_all_vargas(
         24,
         27,
         30,
+        40,
+        45,
+        60,
     ):
 
         code = f"D{division}"

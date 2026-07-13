@@ -958,6 +958,48 @@ class VedicChartEngine:
             birth=birth,
             division=30,
         )
+    
+    # =========================================================
+    # D40
+    # =========================================================
+
+    def calculate_d40(
+        self,
+        birth: BirthData,
+    ) -> dict:
+
+        return self.calculate_varga_chart(
+            birth=birth,
+            division=40,
+        )
+    
+    # =========================================================
+    # D45
+    # =========================================================
+
+    def calculate_d45(
+        self,
+        birth: BirthData,
+    ) -> dict:
+
+        return self.calculate_varga_chart(
+            birth=birth,
+            division=45,
+        )
+    
+    # =========================================================
+    # D60
+    # =========================================================
+
+    def calculate_d60(
+        self,
+        birth: BirthData,
+    ) -> dict:
+
+        return self.calculate_varga_chart(
+            birth=birth,
+            division=60,
+        )
 
     # =========================================================
     # ALL VARGAS

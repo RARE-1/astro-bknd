@@ -503,6 +503,58 @@ def get_d30(
     )
 
 # =============================================================
+# D40 - KHAVEDAMSHA
+# =============================================================
+
+
+@app.get(
+    "/api/v1/chart-sessions/{chart_id}/d40"
+)
+def get_d40(
+    chart_id: UUID,
+):
+
+    return get_chart_for_session(
+        chart_id=chart_id,
+        division=40,
+    )
+
+# =============================================================
+# D45 - AKSHAVEDAMSHA
+# =============================================================
+
+
+@app.get(
+    "/api/v1/chart-sessions/{chart_id}/d45"
+)
+def get_d45(
+    chart_id: UUID,
+):
+
+    return get_chart_for_session(
+        chart_id=chart_id,
+        division=45,
+    )
+
+
+# =============================================================
+# D60 - SHASHTIAMSHA
+# =============================================================
+
+
+@app.get(
+    "/api/v1/chart-sessions/{chart_id}/d60"
+)
+def get_d60(
+    chart_id: UUID,
+):
+
+    return get_chart_for_session(
+        chart_id=chart_id,
+        division=60,
+    )
+
+# =============================================================
 # GENERIC GET CHART ENDPOINT
 # =============================================================
 
