@@ -14,6 +14,8 @@ VARGA_NAMES = {
     16: "Shodashamsha",
     20: "Vimshamsha",
     24: "Chaturvimshamsha",
+    27: "Saptavimshamsha",
+    30: "Trimshamsha",
 }
 
 
@@ -831,6 +833,108 @@ def calculate_d24(longitude: float) -> dict:
         part_index,
     )
 
+# =============================================================
+# D27 - SAPTAVIMSHAMSHA / BHAMSA
+# =============================================================
+
+
+def calculate_d27(longitude: float) -> dict:
+    """
+    Saptavimshamsha / Bhamsa.
+
+    Twenty-seven equal divisions.
+
+    Each division:
+        30° / 27
+        = 1.111111...°
+        = 1°06'40"
+
+    Parashari starting signs by element:
+
+        Fire signs:
+            Aries
+
+        Earth signs:
+            Cancer
+
+        Air signs:
+            Libra
+
+        Water signs:
+            Capricorn
+
+    Count zodiacally from the appropriate starting sign
+    according to the zero-based subdivision index.
+    """
+
+    longitude = normalize_degree(
+        longitude
+    )
+
+    sign_index = int(
+        longitude // 30.0
+    )
+
+    degree = (
+        longitude % 30.0
+    )
+
+    division = 27
+
+    segment_size = (
+        30.0 / division
+    )
+
+    part_index = min(
+        int(
+            degree / segment_size
+        ),
+        division - 1,
+    )
+
+    # Fire signs:
+    # Aries, Leo, Sagittarius
+    if sign_index in {
+        0,
+        4,
+        8,
+    }:
+        start_sign = 0  # Aries
+
+    # Earth signs:
+    # Taurus, Virgo, Capricorn
+    elif sign_index in {
+        1,
+        5,
+        9,
+    }:
+        start_sign = 3  # Cancer
+
+    # Air signs:
+    # Gemini, Libra, Aquarius
+    elif sign_index in {
+        2,
+        6,
+        10,
+    }:
+        start_sign = 6  # Libra
+
+    # Water signs:
+    # Cancer, Scorpio, Pisces
+    else:
+        start_sign = 9  # Capricorn
+
+    target_sign = (
+        start_sign
+        + part_index
+    ) % 12
+
+    return build_varga_position(
+        longitude,
+        target_sign,
+        27,
+        part_index,
+    )
 
 # =============================================================
 # CALCULATOR REGISTRY
@@ -849,6 +953,7 @@ VARGA_CALCULATORS = {
     16: calculate_d16,
     20: calculate_d20,
     24: calculate_d24,
+    27: calculate_d27,
 }
 
 
@@ -985,6 +1090,7 @@ def calculate_all_vargas(
         16,
         20,
         24,
+        27,
     ):
 
         code = f"D{division}"
