@@ -11,6 +11,7 @@ VARGA_NAMES = {
     9: "Navamsha",
     10: "Dashamsha",
     12: "Dwadashamsha",
+    16: "Shodashamsha",
 }
 
 
@@ -117,6 +118,11 @@ def build_varga_position(
     }
 
 
+# =============================================================
+# D1 - RASHI
+# =============================================================
+
+
 def calculate_d1(longitude: float) -> dict:
 
     longitude = normalize_degree(longitude)
@@ -129,6 +135,11 @@ def calculate_d1(longitude: float) -> dict:
         division=1,
         part_index=0,
     )
+
+
+# =============================================================
+# D2 - HORA
+# =============================================================
 
 
 def calculate_d2(longitude: float) -> dict:
@@ -183,6 +194,11 @@ def calculate_d2(longitude: float) -> dict:
     )
 
 
+# =============================================================
+# D3 - DREKKANA
+# =============================================================
+
+
 def calculate_d3(longitude: float) -> dict:
     """
     Parashari Drekkana.
@@ -221,6 +237,11 @@ def calculate_d3(longitude: float) -> dict:
         3,
         part_index,
     )
+
+
+# =============================================================
+# D4 - CHATURTHAMSHA
+# =============================================================
 
 
 def calculate_d4(longitude: float) -> dict:
@@ -267,6 +288,11 @@ def calculate_d4(longitude: float) -> dict:
     )
 
 
+# =============================================================
+# D7 - SAPTAMSHA
+# =============================================================
+
+
 def calculate_d7(longitude: float) -> dict:
     """
     Saptamsha.
@@ -310,6 +336,11 @@ def calculate_d7(longitude: float) -> dict:
         7,
         part_index,
     )
+
+
+# =============================================================
+# D9 - NAVAMSHA
+# =============================================================
 
 
 def calculate_d9(longitude: float) -> dict:
@@ -386,6 +417,11 @@ def calculate_d9(longitude: float) -> dict:
     )
 
 
+# =============================================================
+# D10 - DASHAMSHA
+# =============================================================
+
+
 def calculate_d10(longitude: float) -> dict:
     """
     Dashamsha / Dasamsa.
@@ -431,6 +467,11 @@ def calculate_d10(longitude: float) -> dict:
     )
 
 
+# =============================================================
+# D12 - DWADASHAMSHA
+# =============================================================
+
+
 def calculate_d12(longitude: float) -> dict:
     """
     Dwadashamsha.
@@ -465,6 +506,137 @@ def calculate_d12(longitude: float) -> dict:
     )
 
 
+# =============================================================
+# D16 - SHODASHAMSHA
+# =============================================================
+
+
+def calculate_d16(longitude: float) -> dict:
+    """
+    Shodashamsha / Kalamsa.
+
+    Sixteen equal divisions.
+
+    Each division is:
+
+        30° / 16
+        = 1.875°
+        = 1°52'30"
+
+    Parashari starting signs:
+
+        Movable signs:
+            start from Aries.
+
+        Fixed signs:
+            start from Leo.
+
+        Dual signs:
+            start from Sagittarius.
+
+    From the appropriate starting sign,
+    count zodiacally according to the
+    zero-based subdivision index.
+    """
+
+    longitude = normalize_degree(
+        longitude
+    )
+
+    sign_index = int(
+        longitude // 30.0
+    )
+
+    degree = (
+        longitude % 30.0
+    )
+
+    division = 16
+
+    segment_size = (
+        30.0 / division
+    )
+
+    part_index = min(
+        int(
+            degree / segment_size
+        ),
+        division - 1,
+    )
+
+    # ---------------------------------------------------------
+    # MOVABLE SIGNS
+    #
+    # Aries
+    # Cancer
+    # Libra
+    # Capricorn
+    #
+    # Start from Aries.
+    # ---------------------------------------------------------
+
+    if sign_index in {
+        0,
+        3,
+        6,
+        9,
+    }:
+
+        start_sign = 0  # Aries
+
+    # ---------------------------------------------------------
+    # FIXED SIGNS
+    #
+    # Taurus
+    # Leo
+    # Scorpio
+    # Aquarius
+    #
+    # Start from Leo.
+    # ---------------------------------------------------------
+
+    elif sign_index in {
+        1,
+        4,
+        7,
+        10,
+    }:
+
+        start_sign = 4  # Leo
+
+    # ---------------------------------------------------------
+    # DUAL SIGNS
+    #
+    # Gemini
+    # Virgo
+    # Sagittarius
+    # Pisces
+    #
+    # Start from Sagittarius.
+    # ---------------------------------------------------------
+
+    else:
+
+        start_sign = 8  # Sagittarius
+
+    target_sign = (
+        start_sign
+        + part_index
+    ) % 12
+
+    return build_varga_position(
+        longitude,
+        target_sign,
+        16,
+        part_index,
+    )
+
+
+# =============================================================
+# CALCULATOR REGISTRY
+# =============================================================
+
+
 VARGA_CALCULATORS = {
     1: calculate_d1,
     2: calculate_d2,
@@ -474,7 +646,13 @@ VARGA_CALCULATORS = {
     9: calculate_d9,
     10: calculate_d10,
     12: calculate_d12,
+    16: calculate_d16,
 }
+
+
+# =============================================================
+# CALCULATE SINGLE POSITION
+# =============================================================
 
 
 def calculate_varga(
@@ -492,6 +670,11 @@ def calculate_varga(
         )
 
     return calculator(longitude)
+
+
+# =============================================================
+# CALCULATE COMPLETE VARGA CHART
+# =============================================================
 
 
 def calculate_varga_chart(
@@ -576,6 +759,11 @@ def calculate_varga_chart(
     }
 
 
+# =============================================================
+# CALCULATE ALL SUPPORTED VARGAS
+# =============================================================
+
+
 def calculate_all_vargas(
     ascendant_longitude: float,
     planets: dict,
@@ -592,6 +780,7 @@ def calculate_all_vargas(
         9,
         10,
         12,
+        16,
     ):
 
         code = f"D{division}"

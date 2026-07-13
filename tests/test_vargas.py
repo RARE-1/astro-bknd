@@ -9,6 +9,7 @@ from app.astrology.vargas import (
     calculate_d9,
     calculate_d10,
     calculate_d12,
+    calculate_d16,
     calculate_all_vargas,
 )
 
@@ -163,6 +164,125 @@ def test_d12_counts_from_source_sign():
         3.0
     )["sign"] == "Taurus"
 
+# =============================================================
+# D16 - SHODASHAMSHA TESTS
+# =============================================================
+
+
+def test_d16_movable_sign_starts_from_aries():
+    """
+    Aries is movable.
+
+    First Shodashamsha should start from Aries.
+    """
+
+    result = calculate_d16(
+        0.0
+    )
+
+    assert result["division"] == 16
+    assert result["chart"] == "D16"
+    assert result["chart_name"] == "Shodashamsha"
+
+    assert result["part_index"] == 0
+    assert result["sign"] == "Aries"
+
+
+def test_d16_fixed_sign_starts_from_leo():
+    """
+    Taurus is fixed.
+
+    First Shodashamsha should start from Leo.
+    """
+
+    result = calculate_d16(
+        30.0
+    )
+
+    assert result["part_index"] == 0
+    assert result["sign"] == "Leo"
+
+
+def test_d16_dual_sign_starts_from_sagittarius():
+    """
+    Gemini is dual.
+
+    First Shodashamsha should start from Sagittarius.
+    """
+
+    result = calculate_d16(
+        60.0
+    )
+
+    assert result["part_index"] == 0
+    assert result["sign"] == "Sagittarius"
+
+
+def test_d16_exact_second_part_boundary():
+    """
+    Each D16 division is 1.875 degrees.
+
+    Aries 1°52'30" is the exact beginning
+    of the second Shodashamsha.
+    """
+
+    result = calculate_d16(
+        1.875
+    )
+
+    assert result["part_index"] == 1
+    assert result["part_number"] == 2
+    assert result["sign"] == "Taurus"
+
+    assert abs(
+        result["degree_in_sign"]
+        - 0.0
+    ) < 1e-8
+
+
+def test_d16_last_part():
+    """
+    A longitude near 30 degrees should
+    fall in the 16th and final division.
+    """
+
+    result = calculate_d16(
+        29.999999
+    )
+
+    assert result["part_index"] == 15
+    assert result["part_number"] == 16
+
+    # Aries is movable.
+    # Start Aries + 15 signs = Cancer.
+    assert result["sign"] == "Cancer"
+
+
+def test_d16_real_ascendant():
+    """
+    Birth-chart ascendant used for manual validation:
+
+        Gemini 25.86579158 degrees
+
+    Gemini is dual:
+        D16 counting starts from Sagittarius.
+
+    25.86579158 / 1.875 = subdivision 13
+    using zero-based indexing.
+
+    Sagittarius + 13 signs = Capricorn.
+    """
+
+    result = calculate_d16(
+        85.86579158
+    )
+
+    assert result["source_sign"] == "Gemini"
+
+    assert result["part_index"] == 13
+    assert result["part_number"] == 14
+
+    assert result["sign"] == "Capricorn"
 
 def test_full_chart_generates_vargas():
 

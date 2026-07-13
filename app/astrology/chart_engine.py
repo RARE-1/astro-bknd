@@ -882,7 +882,21 @@ class VedicChartEngine:
             birth=birth,
             division=12,
         )
+    
+    # =========================================================
+    # D16
+    # =========================================================
 
+    def calculate_d16(
+        self,
+        birth: BirthData,
+    ) -> dict:
+
+        return self.calculate_varga_chart(
+            birth=birth,
+            division=16,
+        )
+    
     # =========================================================
     # ALL VARGAS
     # =========================================================
