@@ -13,6 +13,7 @@ VARGA_NAMES = {
     12: "Dwadashamsha",
     16: "Shodashamsha",
     20: "Vimshamsha",
+    24: "Chaturvimshamsha",
 }
 
 
@@ -757,6 +758,79 @@ def calculate_d20(longitude: float) -> dict:
         part_index,
     )
 
+# =============================================================
+# D24 - CHATURVIMSHAMSHA / SIDDHAMSHA
+# =============================================================
+
+
+def calculate_d24(longitude: float) -> dict:
+    """
+    Chaturvimshamsha / Siddhamsha.
+
+    Twenty-four equal divisions.
+
+    Each division:
+        30° / 24 = 1.25° = 1°15'
+
+    Parashari rule:
+
+        Odd signs:
+            start from Leo.
+
+        Even signs:
+            start from Cancer.
+
+    Count zodiacally from the appropriate starting sign
+    according to the zero-based subdivision index.
+    """
+
+    longitude = normalize_degree(
+        longitude
+    )
+
+    sign_index = int(
+        longitude // 30.0
+    )
+
+    degree = (
+        longitude % 30.0
+    )
+
+    division = 24
+
+    segment_size = (
+        30.0 / division
+    )
+
+    part_index = min(
+        int(
+            degree / segment_size
+        ),
+        division - 1,
+    )
+
+    if is_odd_sign(
+        sign_index
+    ):
+        # Odd signs start from Leo
+        start_sign = 4
+
+    else:
+        # Even signs start from Cancer
+        start_sign = 3
+
+    target_sign = (
+        start_sign
+        + part_index
+    ) % 12
+
+    return build_varga_position(
+        longitude,
+        target_sign,
+        24,
+        part_index,
+    )
+
 
 # =============================================================
 # CALCULATOR REGISTRY
@@ -774,6 +848,7 @@ VARGA_CALCULATORS = {
     12: calculate_d12,
     16: calculate_d16,
     20: calculate_d20,
+    24: calculate_d24,
 }
 
 
@@ -909,6 +984,7 @@ def calculate_all_vargas(
         12,
         16,
         20,
+        24,
     ):
 
         code = f"D{division}"

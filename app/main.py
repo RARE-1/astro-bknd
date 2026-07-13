@@ -451,6 +451,22 @@ def get_d20(
         division=20,
     )
 
+# =============================================================
+# D24 - CHATURVIMSHAMSHA
+# =============================================================
+
+
+@app.get(
+    "/api/v1/chart-sessions/{chart_id}/d24"
+)
+def get_d24(
+    chart_id: UUID,
+):
+
+    return get_chart_for_session(
+        chart_id=chart_id,
+        division=24,
+    )
 
 # =============================================================
 # GENERIC GET CHART ENDPOINT
