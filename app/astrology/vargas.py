@@ -937,6 +937,195 @@ def calculate_d27(longitude: float) -> dict:
     )
 
 # =============================================================
+# D30 - TRIMSHAMSHA
+# =============================================================
+
+
+def calculate_d30(longitude: float) -> dict:
+    """
+    Trimshamsha.
+
+    Classical Parashari D30 uses five unequal divisions
+    within each 30-degree zodiac sign.
+
+    ODD SIGNS:
+        0°  - 5°   -> Mars    -> Aries
+        5°  - 10°  -> Saturn  -> Aquarius
+        10° - 18°  -> Jupiter -> Sagittarius
+        18° - 25°  -> Mercury -> Gemini
+        25° - 30°  -> Venus   -> Libra
+
+    EVEN SIGNS:
+        0°  - 5°   -> Venus   -> Taurus
+        5°  - 12°  -> Mercury -> Virgo
+        12° - 20°  -> Jupiter -> Pisces
+        20° - 25°  -> Saturn  -> Capricorn
+        25° - 30°  -> Mars    -> Scorpio
+
+    Important:
+        D30 is NOT calculated as thirty equal 1-degree
+        subdivisions in the classical Parashari method.
+    """
+
+    longitude = normalize_degree(
+        longitude
+    )
+
+    source_sign_index = int(
+        longitude // 30.0
+    )
+
+    degree = (
+        longitude % 30.0
+    )
+
+    # ---------------------------------------------------------
+    # ODD SIGNS
+    #
+    # Aries, Gemini, Leo, Libra,
+    # Sagittarius, Aquarius
+    # ---------------------------------------------------------
+
+    if is_odd_sign(
+        source_sign_index
+    ):
+
+        ranges = [
+            # start, end, target sign
+            (0.0, 5.0, 0),    # Mars -> Aries
+            (5.0, 10.0, 10),  # Saturn -> Aquarius
+            (10.0, 18.0, 8),  # Jupiter -> Sagittarius
+            (18.0, 25.0, 2),  # Mercury -> Gemini
+            (25.0, 30.0, 6),  # Venus -> Libra
+        ]
+
+    # ---------------------------------------------------------
+    # EVEN SIGNS
+    #
+    # Taurus, Cancer, Virgo, Scorpio,
+    # Capricorn, Pisces
+    # ---------------------------------------------------------
+
+    else:
+
+        ranges = [
+            # start, end, target sign
+            (0.0, 5.0, 1),    # Venus -> Taurus
+            (5.0, 12.0, 5),   # Mercury -> Virgo
+            (12.0, 20.0, 11), # Jupiter -> Pisces
+            (20.0, 25.0, 9),  # Saturn -> Capricorn
+            (25.0, 30.0, 7),  # Mars -> Scorpio
+        ]
+
+    # ---------------------------------------------------------
+    # FIND THE CORRECT UNEQUAL SECTION
+    # ---------------------------------------------------------
+
+    for section_index, (
+        start_degree,
+        end_degree,
+        target_sign,
+    ) in enumerate(
+        ranges
+    ):
+
+        if (
+            start_degree
+            <= degree
+            < end_degree
+        ):
+
+            section_size = (
+                end_degree
+                - start_degree
+            )
+
+            progress = (
+                degree
+                - start_degree
+            ) / section_size
+
+            degree_in_varga_sign = (
+                progress * 30.0
+            )
+
+            varga_longitude = (
+                target_sign * 30.0
+                + degree_in_varga_sign
+            ) % 360.0
+
+            sign = ZODIAC_SIGNS[
+                target_sign
+            ]
+
+            return {
+                "division": 30,
+
+                "chart": "D30",
+
+                "chart_name": (
+                    VARGA_NAMES[30]
+                ),
+
+                "source_longitude": round(
+                    longitude,
+                    8,
+                ),
+
+                "source_sign_index": (
+                    source_sign_index
+                ),
+
+                "source_sign": (
+                    ZODIAC_SIGNS[
+                        source_sign_index
+                    ]
+                ),
+
+                # D30 has unequal classical sections.
+                # This represents the section,
+                # not a literal 1-degree subdivision.
+                "part_index": (
+                    section_index
+                ),
+
+                "part_number": (
+                    section_index + 1
+                ),
+
+                "sign_index": (
+                    target_sign
+                ),
+
+                "sign_number": (
+                    target_sign + 1
+                ),
+
+                "sign": sign,
+
+                "sign_lord": (
+                    SIGN_LORDS[
+                        sign
+                    ]
+                ),
+
+                "degree_in_sign": round(
+                    degree_in_varga_sign,
+                    8,
+                ),
+
+                "longitude": round(
+                    varga_longitude,
+                    8,
+                ),
+            }
+
+    # Floating-point safety fallback.
+    raise ValueError(
+        f"Unable to calculate D30 for longitude: {longitude}"
+    )
+
+# =============================================================
 # CALCULATOR REGISTRY
 # =============================================================
 
@@ -954,6 +1143,7 @@ VARGA_CALCULATORS = {
     20: calculate_d20,
     24: calculate_d24,
     27: calculate_d27,
+    30: calculate_d30,
 }
 
 
@@ -1091,6 +1281,7 @@ def calculate_all_vargas(
         20,
         24,
         27,
+        30,
     ):
 
         code = f"D{division}"

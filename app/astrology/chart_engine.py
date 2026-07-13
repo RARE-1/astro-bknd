@@ -944,6 +944,20 @@ class VedicChartEngine:
             birth=birth,
             division=27,
         )
+    
+    # =========================================================
+    # D30
+    # =========================================================
+
+    def calculate_d30(
+        self,
+        birth: BirthData,
+    ) -> dict:
+
+        return self.calculate_varga_chart(
+            birth=birth,
+            division=30,
+        )
 
     # =========================================================
     # ALL VARGAS
