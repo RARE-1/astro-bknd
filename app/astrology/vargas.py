@@ -12,6 +12,7 @@ VARGA_NAMES = {
     10: "Dashamsha",
     12: "Dwadashamsha",
     16: "Shodashamsha",
+    20: "Vimshamsha",
 }
 
 
@@ -631,6 +632,131 @@ def calculate_d16(longitude: float) -> dict:
         part_index,
     )
 
+# =============================================================
+# D20 - VIMSHAMSHA
+# =============================================================
+
+
+def calculate_d20(longitude: float) -> dict:
+    """
+    Vimshamsha.
+
+    Twenty equal divisions.
+
+    Each division is:
+
+        30° / 20
+        = 1.5°
+        = 1°30'
+
+    Parashari starting signs:
+
+        Movable signs:
+            start from Aries.
+
+        Fixed signs:
+            start from Sagittarius.
+
+        Dual signs:
+            start from Leo.
+
+    From the appropriate starting sign,
+    count zodiacally according to the
+    zero-based subdivision index.
+    """
+
+    longitude = normalize_degree(
+        longitude
+    )
+
+    sign_index = int(
+        longitude // 30.0
+    )
+
+    degree = (
+        longitude % 30.0
+    )
+
+    division = 20
+
+    segment_size = (
+        30.0 / division
+    )
+
+    part_index = min(
+        int(
+            degree / segment_size
+        ),
+        division - 1,
+    )
+
+    # ---------------------------------------------------------
+    # MOVABLE SIGNS
+    #
+    # Aries
+    # Cancer
+    # Libra
+    # Capricorn
+    #
+    # Start from Aries.
+    # ---------------------------------------------------------
+
+    if sign_index in {
+        0,
+        3,
+        6,
+        9,
+    }:
+
+        start_sign = 0  # Aries
+
+    # ---------------------------------------------------------
+    # FIXED SIGNS
+    #
+    # Taurus
+    # Leo
+    # Scorpio
+    # Aquarius
+    #
+    # Start from Sagittarius.
+    # ---------------------------------------------------------
+
+    elif sign_index in {
+        1,
+        4,
+        7,
+        10,
+    }:
+
+        start_sign = 8  # Sagittarius
+
+    # ---------------------------------------------------------
+    # DUAL SIGNS
+    #
+    # Gemini
+    # Virgo
+    # Sagittarius
+    # Pisces
+    #
+    # Start from Leo.
+    # ---------------------------------------------------------
+
+    else:
+
+        start_sign = 4  # Leo
+
+    target_sign = (
+        start_sign
+        + part_index
+    ) % 12
+
+    return build_varga_position(
+        longitude,
+        target_sign,
+        20,
+        part_index,
+    )
+
 
 # =============================================================
 # CALCULATOR REGISTRY
@@ -647,6 +773,7 @@ VARGA_CALCULATORS = {
     10: calculate_d10,
     12: calculate_d12,
     16: calculate_d16,
+    20: calculate_d20,
 }
 
 
@@ -781,6 +908,7 @@ def calculate_all_vargas(
         10,
         12,
         16,
+        20,
     ):
 
         code = f"D{division}"

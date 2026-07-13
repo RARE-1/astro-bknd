@@ -435,6 +435,22 @@ def get_d16(
         division=16,
     )
 
+# =============================================================
+# D20 - VIMSHAMSHA
+# =============================================================
+
+
+@app.get(
+    "/api/v1/chart-sessions/{chart_id}/d20"
+)
+def get_d20(
+    chart_id: UUID,
+):
+    return get_chart_for_session(
+        chart_id=chart_id,
+        division=20,
+    )
+
 
 # =============================================================
 # GENERIC GET CHART ENDPOINT
