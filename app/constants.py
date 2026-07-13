@@ -58,7 +58,12 @@ NAKSHATRAS = [
     ("Revati", "Mercury"),
 ]
 
-PLANET_NAMES = [
+
+# =============================================================
+# CLASSICAL VEDIC GRAHAS
+# =============================================================
+
+CLASSICAL_GRAHA_NAMES = [
     "Sun",
     "Moon",
     "Mars",
@@ -69,3 +74,24 @@ PLANET_NAMES = [
     "Rahu",
     "Ketu",
 ]
+
+
+# =============================================================
+# OUTER PLANETS
+# =============================================================
+
+OUTER_PLANET_NAMES = [
+    "Uranus",
+    "Neptune",
+    "Pluto",
+]
+
+
+# =============================================================
+# ALL CALCULATED PLANETS
+# =============================================================
+
+PLANET_NAMES = (
+    CLASSICAL_GRAHA_NAMES
+    + OUTER_PLANET_NAMES
+)

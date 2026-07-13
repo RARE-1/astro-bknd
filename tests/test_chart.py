@@ -21,7 +21,7 @@ def test_chart_generation():
     assert "ascendant" in result
     assert "planets" in result
 
-    assert len(result["planets"]) == 9
+    assert len(result["planets"]) == 12
     assert len(result["houses"]) == 12
 
     assert 0 <= result["planets"]["Sun"]["longitude"] < 360

@@ -314,7 +314,7 @@ def test_full_chart_generates_vargas():
                 "vargas"
             ]["D9"]["planets"]
         )
-        == 9
+        == 12
     )
 
     assert (

@@ -24,6 +24,7 @@ from app.astrology.vargas import (
 
 
 PLANET_IDS = {
+    # Classical planets
     "Sun": swe.SUN,
     "Moon": swe.MOON,
     "Mars": swe.MARS,
@@ -31,6 +32,11 @@ PLANET_IDS = {
     "Jupiter": swe.JUPITER,
     "Venus": swe.VENUS,
     "Saturn": swe.SATURN,
+
+    # Outer planets
+    "Uranus": swe.URANUS,
+    "Neptune": swe.NEPTUNE,
+    "Pluto": swe.PLUTO,
 }
 
 
